@@ -38,20 +38,64 @@ int main() {
     const char* dll_path = "C:\\Users\\admin\\Desktop\\IA\\Labs\\Tan cong process\\DLL Injection\\badDLL\\x64\\Debug\\badDLL.dll";
 
     // lay handle cua process
-    HANDLE hProcess = OpenProcess(PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_CREATE_THREAD, FALSE, pid);
+    //HANDLE OpenProcess(
+    //	[in] DWORD dwDesiredAccess,
+    //	[in] BOOL  bInheritHandle,
+    //	[in] DWORD dwProcessId
+    //);
+    HANDLE hProcess = OpenProcess(
+        PROCESS_ALL_ACCESS, 
+        FALSE, 
+        pid);
 
     // cap phat bo nho trong tien trinh dich
-    auto p = VirtualAllocEx(hProcess, nullptr, 1 << 12, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    //LPVOID VirtualAllocEx(
+    //	[in]           HANDLE hProcess,
+    //	[in, optional] LPVOID lpAddress,
+    //	[in]           SIZE_T dwSize,
+    //	[in]           DWORD  flAllocationType,
+    //	[in]           DWORD  flProtect
+    //);
+    auto p = VirtualAllocEx(
+        hProcess, 
+        NULL, 
+        strlen(dll_path),
+        MEM_COMMIT | MEM_RESERVE, 
+        PAGE_READWRITE);
 
     // Viet path den DLL
-    WriteProcessMemory(hProcess, p, dll_path, strlen(dll_path) + 1, nullptr);
+    //BOOL WriteProcessMemory(
+    //	[in]  HANDLE  hProcess,
+    //	[in]  LPVOID  lpBaseAddress,
+    //	[in]  LPCVOID lpBuffer,
+    //	[in]  SIZE_T  nSize,
+    //	[out] SIZE_T * lpNumberOfBytesWritten
+    //);
+    WriteProcessMemory(
+        hProcess, 
+        p, 
+        dll_path, 
+        strlen(dll_path), 
+        NULL);
 
-    // tao thread tu ham load_library de process nap DLL
-    auto hThread = CreateRemoteThread(hProcess, nullptr, 0,
+    // tao thread tu ham LoadLibrary de process nap DLL
+    //HANDLE CreateRemoteThread(
+    //	[in]  HANDLE                 hProcess,
+    //	[in]  LPSECURITY_ATTRIBUTES  lpThreadAttributes,
+    //	[in]  SIZE_T                 dwStackSize,
+    //	[in]  LPTHREAD_START_ROUTINE lpStartAddress,
+    //	[in]  LPVOID                 lpParameter,
+    //	[in]  DWORD                  dwCreationFlags,
+    //	[out] LPDWORD                lpThreadId
+    //);
+    auto hThread = CreateRemoteThread(
+        hProcess, 
+        NULL, 
+        0,
         (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandle(L"kernel32.dll"), "LoadLibraryA"),
-        p, 0, nullptr);
-
-    printf("DLL da duoc inject thanh cong\n");
+        p, 
+        0, 
+        NULL);
 
     CloseHandle(hThread);
     CloseHandle(hProcess);

